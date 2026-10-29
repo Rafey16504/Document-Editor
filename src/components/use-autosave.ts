@@ -94,5 +94,5 @@ export function useAutosave<T extends Patch>(
     };
   }, [flush]);
 
-  return { status, error, queue, retry: flush };
+  return { status, error, queue, flush, retry: flush };
 }

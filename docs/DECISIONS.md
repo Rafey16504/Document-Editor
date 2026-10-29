@@ -17,6 +17,10 @@ Important decisions made during development, with the reasoning behind them. Ent
 | D-009 | 2026-10-29 | Debounced, serialized whole-document autosave; last write wins | Accepted |
 | D-010 | 2026-10-29 | Server components read document lists directly; no list API yet | Accepted |
 | D-011 | 2026-10-29 | `getAccess()` built in session 2 (moved up from session 3) | Accepted |
+| D-012 | 2026-10-29 | HTML → Tiptap JSON on the server with `@tiptap/html/server` | Accepted |
+| D-013 | 2026-10-29 | Document body limit raised to 4 MB | Accepted |
+| D-014 | 2026-10-29 | Test DBs: in-memory libSQL (unit), separate file DB + production build (e2e) | Accepted |
+| D-015 | 2026-10-29 | Markdown export via a hand-written serializer; underline as `<u>`; viewers can export | Accepted |
 
 <!-- Status values: Proposed | Accepted | Superseded by D-XXX | Rejected -->
 
@@ -295,3 +299,21 @@ Important decisions made during development, with the reasoning behind them. Ent
 **Consequences:** E2E takes ~40 s plus build time. Vitest 4 rather than 5, since Vitest 5 needs `@types/node` 22+ and the project targets Node 20. With `(app)/loading.tsx` streaming, the document not-found page returns HTTP 200 (UI and API still say not found / 404).
 
 ---
+
+## D-015: Markdown export via a hand-written serializer
+
+- **Date:** 2026-10-29
+- **Status:** Accepted
+
+**Context:** Stretch goal: export to Markdown. Stored content is Tiptap JSON limited to StarterKit (headings 1–3, no links). Markdown has no underline syntax.
+
+**Options considered:**
+1. Small serializer over our own node/mark set (`src/server/export.ts`), server-side route.
+2. `@tiptap/markdown` (or `prosemirror-markdown`): new dependency, needs an editor/schema instance on the server.
+3. Client-only export from the editor instance.
+
+**Decision:** Option 1. Underline is written as inline HTML `<u>…</u>`. Any role that can read can export (`CAN_READ`). The client flushes pending autosave before downloading, so the file matches the screen.
+
+**Why:** Our schema is small, so the serializer is short and fully unit-tested, with no new dependency. `<u>` is valid Markdown, and our importer (`marked` → Tiptap schema) maps it back to underline, so export → import round-trips. Viewers can already read and copy the content, so blocking export would add nothing.
+
+**Consequences:** New node types added to the editor need a case in `docToMarkdown()` (unknown blocks fall back to their text). The title isn't in the file body, only the file name.

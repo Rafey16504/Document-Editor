@@ -24,6 +24,34 @@ Chronological record of development sessions. **Newest entries at the top.**
 ---
 -->
 
+## 2026-10-29 — Session 7: deliverables + Markdown export
+
+**Goal:** Everything on the brief's deliverables list; Markdown export as the stretch goal.
+
+**Done:**
+- Deliverables: `SUBMISSION.md` (contents, live URL, test accounts, limitations, next 2–4 h), `ARCHITECTURE_NOTE.md` (short, prioritized/cut and why), `AI_WORKFLOW.md`, `VIDEO_URL.txt` (placeholder), `docs/VIDEO_TALKING_POINTS.md`, 7 screenshots in `docs/screenshots/` (taken by a throwaway Playwright script against a prod build on `e2e.db`)
+- Markdown export: `docToMarkdown()` + `exportDocument()` (`src/server/export.ts`), `GET /api/documents/:id/export` (`src/app/api/documents/[id]/export/route.ts`), "Export .md" button for all roles that flushes autosave first (`src/components/export-button.tsx`, `document-editor.tsx`); `useAutosave` now also returns `flush`
+- Tests: `tests/export.test.ts` (8: each node/mark, nested lists, code fences, escaping, empty doc, round trip through `convertFile(.md)`, owner/viewer export, stranger 404); e2e smoke test downloads the export and checks file name + content
+- README, `docs/ARCHITECTURE.md` (API row, export section), `docs/DECISIONS.md` (D-015; index was missing D-012..D-014, added)
+- Verified: `npm test` 53/53, `npm run test:e2e` 4/4, `tsc`, lint, Prettier clean. Against `next start`: export 401 anonymous, 404 for Carol, 200 for viewer Bob with `Content-Disposition` file name; exported Markdown byte-identical to the imported source
+
+**Bugs found and fixed while testing:**
+- Nested lists got trailing spaces on blank lines (indent applied to empty lines); caught by the unit test, fixed in `listItems()`.
+
+**Decisions made:** D-015
+
+**Issues / blockers:**
+- Inline code shows literal backticks in the editor (`@tailwindcss/typography` default `code::before/after`); cosmetic, left as is.
+- Video not recorded yet; `VIDEO_URL.txt` is a placeholder.
+
+**Next steps:**
+- [ ] User: record the walkthrough (outline in `docs/VIDEO_TALKING_POINTS.md`), put the URL in `VIDEO_URL.txt`
+- [ ] User: commit on `session-7-deliverables`, push, merge to `main` (redeploys with export); check Export .md on the live URL
+- [ ] User: put the repo (or a zip) + notes in one Google Drive folder; share the folder link and live URL
+- [ ] Optional: hide the typography plugin's backticks on inline code
+
+---
+
 ## 2026-10-29 — Session 6: deploy
 
 **Goal:** Turso DB + Vercel project, env vars, schema and seed in prod, verify the live flow.

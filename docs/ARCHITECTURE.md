@@ -27,8 +27,8 @@ npm test                       # unit tests (Vitest, in-memory libSQL, no setup 
 npm run test:e2e               # Playwright smoke test; first run: npx playwright install chromium
 ```
 
-- Unit (`tests/*.test.ts`): access rules and role enforcement, shares, import conversion (fixtures in `tests/fixtures/`), validation, `readJson`/`handle`, session tokens. `tests/setup.ts` pushes `schema.ts` into a fresh in-memory DB per test file.
-- E2E (`tests/e2e/smoke.spec.ts`): builds and starts the app on port 3210 against `e2e.db` (recreated and seeded by `tests/e2e/prepare-db.ts`), so `local.db` and a running `next dev` are untouched. Covers login → create → format → rename → share → second user sees and edits it, Markdown import, import errors, empty state, document not-found, logged-out redirect.
+- Unit (`tests/*.test.ts`): access rules and role enforcement, shares, import conversion, Markdown export (fixtures in `tests/fixtures/`), validation, `readJson`/`handle`, session tokens. `tests/setup.ts` pushes `schema.ts` into a fresh in-memory DB per test file.
+- E2E (`tests/e2e/smoke.spec.ts`): builds and starts the app on port 3210 against `e2e.db` (recreated and seeded by `tests/e2e/prepare-db.ts`), so `local.db` and a running `next dev` are untouched. Covers login → create → format → rename → export (download content checked) → share → second user sees and edits it, Markdown import, import errors, empty state, document not-found, logged-out redirect.
 
 Seeded demo users (pick one on the login page): `alice@ajaia.dev`, `bob@ajaia.dev`, `carol@ajaia.dev`.
 
@@ -51,7 +51,7 @@ Seeded demo users (pick one on the login page): `alice@ajaia.dev`, `bob@ajaia.de
 | Auth | Seeded users, signed cookie session (mocked) | D-004 |
 | Styling | Tailwind CSS 4 + `@tailwindcss/typography` for document content | D-007 |
 | Validation | Zod | — |
-| Import | `marked`, `mammoth`, `@tiptap/html` (happy-dom) | D-006, D-012 |
+| Import / export | `marked`, `mammoth`, `@tiptap/html` (happy-dom); hand-written Markdown serializer | D-006, D-012, D-015 |
 | Tests | Vitest 4, Playwright | D-014 |
 
 ## Data model
@@ -126,6 +126,7 @@ Page states in `src/app/(app)/`: `loading.tsx` (skeleton while the dashboard or 
 | GET | `/api/documents/:id/shares` | List `{ shares: [{ userId, email, name, role }] }` (owner) |
 | POST | `/api/documents/:id/shares` | Grant `{ email, role }`, or change the role if already shared (upsert, owner) → `{ share }`. Email is trimmed + lowercased; unknown email 404, self 400 |
 | DELETE | `/api/documents/:id/shares/:userId` | Revoke (owner) → 204, also when no share existed |
+| GET | `/api/documents/:id/export` | Download as Markdown (any access) → `200 text/markdown`, `Content-Disposition: attachment` with the sanitized title + `.md` (D-015) |
 
 ## File import
 
@@ -136,9 +137,14 @@ Page states in `src/app/(app)/`: `loading.tsx` (skeleton while the dashboard or 
 - HTML → JSON via `generateJSON` from `@tiptap/html/server` (happy-dom) with the editor's extension list (D-012), so scripts, images and links are dropped and tables flatten to text.
 - Title = filename without extension (max 200 chars). Empty result → 400 "File is empty"; converted JSON over 4 MB → 413 so every imported doc can still autosave (D-013).
 
+## Markdown export
+
+"Export .md" in the editor header (`src/components/export-button.tsx`, all roles) flushes pending autosave, then fetches `GET /api/documents/:id/export` and downloads the blob. `docToMarkdown()` (`src/server/export.ts`) is a hand-written serializer for the editor schema (D-015): headings, paragraphs, nested bullet/ordered lists (with `start`), blockquote, fenced code (fence longer than any backtick run), `---`, hard break as `\` + newline; marks bold/italic/strike/code, underline as `<u>`. Text is backslash-escaped so it can't turn into Markdown syntax. The title isn't written into the file; it's the file name (characters invalid in file names removed, max 100). Output re-imports to the same document (unit-tested round trip).
+
 ## Prioritized / deprioritized
 
 - **Prioritized:** solid editing + autosave, server-enforced sharing with roles, file import, persistence, tests on access rules.
+- **Stretch:** Markdown export (D-015).
 - **Deprioritized:** real-time co-editing, comments, version history, real authentication, attachments.
 
 ## Deployment
