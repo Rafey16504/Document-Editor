@@ -3,3 +3,22 @@ import { z } from "zod";
 export const loginSchema = z.object({
   userId: z.string().min(1),
 });
+
+export const TITLE_MAX = 200;
+
+// Shape check only; the editor schema drops unknown nodes when it loads the JSON.
+const docContentSchema = z.looseObject({
+  type: z.literal("doc"),
+  content: z.array(z.unknown()).optional(),
+});
+
+export const updateDocumentSchema = z
+  .object({
+    title: z.string().trim().max(TITLE_MAX).optional(),
+    content: docContentSchema.optional(),
+  })
+  .refine((v) => v.title !== undefined || v.content !== undefined, {
+    message: "Nothing to update",
+  });
+
+export type UpdateDocumentInput = z.infer<typeof updateDocumentSchema>;

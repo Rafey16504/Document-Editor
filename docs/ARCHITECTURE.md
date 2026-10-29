@@ -42,11 +42,11 @@ Seeded demo users (pick one on the login page): `alice@ajaia.dev`, `bob@ajaia.de
 | Layer | Choice | Decision |
 |-------|--------|----------|
 | App / API | Next.js 16 App Router (Cache Components off), TypeScript strict | D-001, D-008 |
-| Editor | Tiptap (StarterKit + Underline), JSON storage | D-002 |
+| Editor | Tiptap 3 (StarterKit, which includes Underline), JSON storage | D-002 |
 | DB | Drizzle ORM + libSQL (SQLite file locally, Turso in prod) | D-003 |
 | Hosting | Vercel | D-003 |
 | Auth | Seeded users, signed cookie session (mocked) | D-004 |
-| Styling | Tailwind CSS 4 | D-007 |
+| Styling | Tailwind CSS 4 + `@tailwindcss/typography` for document content | D-007 |
 | Validation | Zod | — |
 | Tests | Vitest, Playwright | — |
 
@@ -70,9 +70,9 @@ Mocked auth (D-004), in `src/server/session.ts`:
 - Pages: the `src/app/(app)/layout.tsx` group redirects to `/login` when logged out. API routes call `requireUser()` (401).
 - Route handlers are wrapped in `handle()` (`src/server/route.ts`): `AppError` → its status, `ZodError` → 400, anything else → logged 500, always `{ error }`.
 
-## Access rules _(planned)_
+## Access rules
 
-Single source of truth: `getAccess(userId, documentId)` in `src/server/access.ts` returns `owner | editor | viewer | null`.
+Single source of truth: `getAccess(userId, documentId)` in `src/server/access.ts` returns `owner | editor | viewer | null`. `requireAccess(userId, documentId, allowed)` throws 404 when the user has no access and 403 when they can see the document but their role is not allowed (D-011). Shares are already read; granting them arrives in session 3.
 
 | Action | Owner | Editor | Viewer |
 |--------|:-----:|:------:|:------:|
@@ -82,7 +82,7 @@ Single source of truth: `getAccess(userId, documentId)` in `src/server/access.ts
 
 No access → 404 (does not leak existence).
 
-## Request flow _(planned)_
+## Request flow
 
 ```
 Browser (React + Tiptap)
@@ -95,7 +95,14 @@ Server modules (src/server/*)             access checks, business logic, import 
 Drizzle → libSQL (local.db | Turso)
 ```
 
-Editor autosaves: debounced (~800 ms) `PATCH /api/documents/:id` with title/content; UI shows Saving / Saved / Error.
+Pages are server components that call `src/server/*` directly (dashboard, editor page); client components call the API for mutations and then `router.refresh()` (D-010).
+
+## Editor
+
+- Extensions: `src/lib/editor-extensions.ts` (StarterKit, headings 1–3, links off). Shared with the planned import so stored JSON only contains supported nodes.
+- `src/components/document-editor.tsx`: title input + Tiptap (`immediatelyRender: false`); toolbar in `editor-toolbar.tsx` (B/I/U, H1–H3, lists, undo/redo; buttons don't take focus). Takes the caller's `role`; viewers get no toolbar and a read-only editor.
+- Autosave (`use-autosave.ts`, D-009): changes merge into one pending patch, debounced 800 ms, one request in flight at a time. Status: Unsaved changes / Saving… / All changes saved / Save failed + Retry. `beforeunload` warns on unsaved changes; leaving the editor in-app flushes, then refreshes the router cache.
+- An empty title is stored as "Untitled document"; titles max 200 chars; PATCH bodies max 1 MB (413).
 
 ## API
 
@@ -103,11 +110,11 @@ Editor autosaves: debounced (~800 ms) `PATCH /api/documents/:id` with title/cont
 |--------|------|---------|
 | POST | `/api/session` | Log in as a seeded user `{ userId }` → `{ user }` (404 if unknown) |
 | DELETE | `/api/session` | Log out (204) |
-| GET | `/api/documents` | List `{ owned, shared }` _(planned)_ |
-| POST | `/api/documents` | Create blank document _(planned)_ |
-| GET | `/api/documents/:id` | Fetch document + caller's role _(planned)_ |
-| PATCH | `/api/documents/:id` | Update title/content (owner/editor) _(planned)_ |
-| DELETE | `/api/documents/:id` | Delete (owner) _(planned)_ |
+| GET | `/api/documents` | List `{ owned, shared }` _(deferred, D-010: pages list server-side)_ |
+| POST | `/api/documents` | Create blank document → `201 { document }` |
+| GET | `/api/documents/:id` | Fetch `{ document, role }` (any access) |
+| PATCH | `/api/documents/:id` | Update `{ title?, content? }` (owner/editor) → `{ document }` summary |
+| DELETE | `/api/documents/:id` | Delete (owner) → 204 |
 | POST | `/api/documents/import` | Upload file → new document _(planned)_ |
 | GET/POST/DELETE | `/api/documents/:id/shares` | List / grant / revoke access (owner) _(planned)_ |
 

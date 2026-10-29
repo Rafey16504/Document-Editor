@@ -56,4 +56,5 @@ export const documentShares = sqliteTable(
 );
 
 export type User = typeof users.$inferSelect;
+export type Document = typeof documents.$inferSelect;
 export type ShareRole = (typeof documentShares.$inferSelect)["role"];

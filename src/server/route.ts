@@ -31,10 +31,24 @@ export function handle<Args extends unknown[]>(
   };
 }
 
-/** Parses a JSON body; malformed JSON is reported as a 400 like invalid input. */
-export async function readJson(req: Request): Promise<unknown> {
+/**
+ * Parses a JSON body; malformed JSON is a 400 like invalid input.
+ * Bodies over `maxBytes` are rejected with 413 before parsing.
+ */
+export async function readJson(
+  req: Request,
+  maxBytes = 100_000,
+): Promise<unknown> {
+  const declared = Number(req.headers.get("content-length"));
+  if (declared > maxBytes) throw new AppError(413, "Request body too large");
+
+  // Content-Length can be absent or wrong, so measure what actually arrived.
+  const text = await req.text();
+  if (new TextEncoder().encode(text).byteLength > maxBytes) {
+    throw new AppError(413, "Request body too large");
+  }
   try {
-    return await req.json();
+    return JSON.parse(text);
   } catch {
     throw new AppError(400, "Invalid JSON body");
   }

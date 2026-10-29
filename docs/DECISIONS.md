@@ -14,6 +14,9 @@ Important decisions made during development, with the reasoning behind them. Ent
 | D-006 | 2026-10-29 | File upload = import .txt/.md/.docx into a new document | Accepted |
 | D-007 | 2026-10-29 | Tailwind CSS for styling | Accepted |
 | D-008 | 2026-10-29 | Next 16 with Cache Components turned off | Accepted |
+| D-009 | 2026-10-29 | Debounced, serialized whole-document autosave; last write wins | Accepted |
+| D-010 | 2026-10-29 | Server components read document lists directly; no list API yet | Accepted |
+| D-011 | 2026-10-29 | `getAccess()` built in session 2 (moved up from session 3) | Accepted |
 
 <!-- Status values: Proposed | Accepted | Superseded by D-XXX | Rejected -->
 
@@ -175,5 +178,63 @@ Important decisions made during development, with the reasoning behind them. Ent
 **Why:** Every page is per-user and dynamic, so the static shell gains nothing; option 2 keeps auth and the editor pages simple.
 
 **Consequences:** Next says both become always-on in the next major; upgrading would need the Suspense pattern from `node_modules/next/dist/docs/01-app/02-guides/authentication-with-cache-components.md`.
+
+---
+
+## D-009: Debounced, serialized whole-document autosave
+
+- **Date:** 2026-10-29
+- **Status:** Accepted
+
+**Context:** Edits must persist without a save button, and responses can arrive out of order.
+
+**Options considered:**
+1. Debounced (800 ms) `PATCH` with the full Tiptap JSON; one request in flight, later edits merged and sent after it.
+2. Send ProseMirror steps / CRDT (Yjs): enables real-time co-editing, much more infrastructure.
+3. Optimistic concurrency (`updatedAt` version check, 409 on conflict).
+
+**Decision:** Option 1 (`src/components/use-autosave.ts`).
+
+**Why:** Simple and robust for single-writer editing; serializing saves means an older save can never overwrite a newer one from the same tab.
+
+**Consequences:** Two people editing the same doc at once: last write wins (no real-time; deprioritized). Failed saves are kept and retried with the next edit or a Retry button; `beforeunload` warns about unsaved changes; leaving the editor in-app flushes and then calls `router.refresh()` so Back never reopens a stale cached copy. Option 3 is the cheap upgrade if conflicts matter later.
+
+---
+
+## D-010: Document lists rendered by server components, no list API yet
+
+- **Date:** 2026-10-29
+- **Status:** Accepted
+
+**Context:** `ARCHITECTURE.md` planned `GET /api/documents`, but the dashboard is a server component.
+
+**Options considered:**
+1. Dashboard calls `listOwnedDocuments()` directly; list API added only when a client needs it.
+2. Build the API now and fetch it from the client.
+
+**Decision:** Option 1.
+
+**Why:** Less code and no loading state; access rules stay in `src/server/`.
+
+**Consequences:** After client mutations the dashboard is updated with `router.refresh()`. Session 3's "Shared with me" list can follow the same pattern.
+
+---
+
+## D-011: `getAccess()` built in session 2
+
+- **Date:** 2026-10-29
+- **Status:** Accepted
+
+**Context:** Session 2's document endpoints need a role check; `getAccess()` was planned for session 3.
+
+**Options considered:**
+1. Full `getAccess()` (owner/editor/viewer via `document_shares`) now.
+2. Owner-only checks now, rewire in session 3.
+
+**Decision:** Option 1 (`src/server/access.ts`), chosen by the user.
+
+**Why:** About 20 lines; avoids rewiring routes later.
+
+**Consequences:** Session 3 only adds the shares API/UI and viewer UI. `requireAccess()` returns 404 for no access and 403 for an insufficient role on a visible doc.
 
 ---
