@@ -54,4 +54,4 @@ This project keeps four running documents in `docs/`. Read them at the start of 
 - Typecheck: `npx next typegen && npx tsc --noEmit` (typegen creates the global `LayoutProps`/`PageProps` types)
 - Lint / format: `npm run lint`, `npm run format`
 - Build: `npm run build`
-- Test: _TBD (session 5)_
+- Test: `npm test` (Vitest), `npm run test:e2e` (Playwright; builds and serves on :3210 with `e2e.db`; first run `npx playwright install chromium`)

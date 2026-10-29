@@ -24,6 +24,37 @@ Chronological record of development sessions. **Newest entries at the top.**
 ---
 -->
 
+## 2026-10-29 — Session 5: tests + hardening
+
+**Goal:** Vitest unit tests (access rules, import conversion, validation), Playwright smoke test of the main flow, error/empty/loading states.
+
+**Done:**
+- Added `vitest@^4`, `@playwright/test`; scripts `test`, `test:e2e` (`package.json`); `e2e.db*`, `test-results`, `playwright-report` ignored
+- Unit setup: in-memory libSQL with schema pushed from `schema.ts` (`vitest.config.mts`, `tests/setup.ts`, `tests/helpers.ts`)
+- 45 unit tests: `tests/access.test.ts` (getAccess/requireAccess 404 vs 403, read/update/delete per role, cascade, lists), `tests/shares.test.ts` (grant, role change, unknown email, self-share, owner-only, idempotent revoke), `tests/import.test.ts` (importExtension, textToDoc, htmlToDoc, convertFile per type + errors), `tests/validation.test.ts` (schemas, readJson, handle, session tokens)
+- Fixtures `tests/fixtures/`: `sample.md`, `sample.docx`, `empty.docx`, `corrupt.docx` (docx built once with jszip)
+- E2E: `playwright.config.ts` (build + start on :3210, `file:e2e.db`), `tests/e2e/prepare-db.ts` (reset + push + seed, refuses any other DB), `tests/e2e/smoke.spec.ts` (4 tests: create → format → rename → reload → share with Bob as editor → Bob sees "Can edit", opens, edits, persists; Markdown import; .pdf / empty file errors, empty "Shared with me", doc not-found page; logged-out redirect)
+- Page states: `src/app/(app)/loading.tsx`, `error.tsx` (Next 16 `retry` prop), `documents/[id]/not-found.tsx`
+- Verified: `npm test` 45/45, `npm run test:e2e` 4/4, `tsc`, lint, Prettier (`--end-of-line auto`) clean. Mutation check: making `getAccess` return "owner" for everyone fails 15 tests.
+
+**Bugs found and fixed while testing:**
+- Toolbar stayed blank until the first click in the editor (e.g. a shared doc opened from the dashboard): `useEditorState` started with a null editor and only re-read on a transaction. Split into a wrapper that mounts the stateful toolbar once the editor exists (`src/components/editor-toolbar.tsx`).
+- Logged-out visits logged a server `TypeError` (null user): Next renders layout and page concurrently, so pages using `getCurrentUser()!` ran despite the layout redirect. Added `requirePageUser()` (`src/server/session.ts`), used in the `(app)` layout and both pages.
+
+**Decisions made:** D-014
+
+**Issues / blockers:**
+- A `next start -p 3100` started at 16:27 (likely session 4 testing) was still running, so e2e uses port 3210. Stop it if it's not needed.
+- Working-copy files have CRLF line endings, so plain `prettier --check .` flags ~50 untouched files; use `--end-of-line auto` locally. Committed files are unaffected.
+- `error.tsx` isn't covered by a test (no safe way to force a server error in the build); checked by build and typecheck only.
+
+**Next steps:**
+- [ ] User: create branch `session-5-tests`, commit, push, merge to `main`; `npx playwright install chromium` on any new machine
+- [ ] Session 6: deploy (Turso + Vercel); optionally run the smoke spec against the live URL by overriding `baseURL`
+- [ ] Session 7: README test instructions (`npm test`, `npm run test:e2e`) and import limits
+
+---
+
 ## 2026-10-29 — Session 4: file import
 
 **Goal:** `POST /api/documents/import` for .txt/.md/.docx (2 MB), HTML → Tiptap JSON, upload UI with stated limits and error states.

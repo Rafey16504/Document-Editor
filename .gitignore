@@ -46,3 +46,8 @@ local.db*
 
 # tool output
 /.playwright-mcp
+
+# test databases and reports
+e2e.db*
+/test-results
+/playwright-report

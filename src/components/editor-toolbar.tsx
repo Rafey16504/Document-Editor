@@ -7,25 +7,29 @@ type Level = 1 | 2 | 3;
 const levels: Level[] = [1, 2, 3];
 
 export function EditorToolbar({ editor }: { editor: Editor | null }) {
-  const state = useEditorState({
-    editor,
-    selector: ({ editor }) =>
-      editor && {
-        bold: editor.isActive("bold"),
-        italic: editor.isActive("italic"),
-        underline: editor.isActive("underline"),
-        heading: levels.find((level) => editor.isActive("heading", { level })),
-        bulletList: editor.isActive("bulletList"),
-        orderedList: editor.isActive("orderedList"),
-        canUndo: editor.can().undo(),
-        canRedo: editor.can().redo(),
-      },
-  });
-
-  if (!editor || !state) {
+  if (!editor) {
     // Keeps the layout stable until the client-only editor mounts.
     return <div className="h-11 border-b border-neutral-200" />;
   }
+  // useEditorState keeps the editor it first saw until the next transaction, so it
+  // must start with a real instance or the toolbar stays blank until a click.
+  return <Toolbar editor={editor} />;
+}
+
+function Toolbar({ editor }: { editor: Editor }) {
+  const state = useEditorState({
+    editor,
+    selector: ({ editor }) => ({
+      bold: editor.isActive("bold"),
+      italic: editor.isActive("italic"),
+      underline: editor.isActive("underline"),
+      heading: levels.find((level) => editor.isActive("heading", { level })),
+      bulletList: editor.isActive("bulletList"),
+      orderedList: editor.isActive("orderedList"),
+      canUndo: editor.can().undo(),
+      canRedo: editor.can().redo(),
+    }),
+  });
 
   const chain = () => editor.chain().focus();
 

@@ -276,3 +276,22 @@ Important decisions made during development, with the reasoning behind them. Ent
 **Consequences:** Pathological files (e.g. 2 MB of one-character lines) are rejected with 413. Documents near the cap are slow to render in the editor.
 
 ---
+
+## D-014: Test databases: in-memory libSQL for unit tests, separate file DB + production build for e2e
+
+- **Date:** 2026-10-29
+- **Status:** Accepted
+
+**Context:** `src/server/db/client.ts` connects at import time and the schema is applied with `db:push` (no migration files). Tests need an isolated schema; e2e must not touch `local.db` or clash with a running `next dev`.
+
+**Options considered:**
+1. Unit: `DATABASE_URL=:memory:` + `pushSQLiteSchema` from `drizzle-kit/api` in a setup file. E2E: `next build && next start` on port 3210 with `file:e2e.db`, reset + seeded before each run.
+2. Generate migration files and apply them in tests; e2e against `next dev` on the shared `local.db`.
+
+**Decision:** Option 1 (`vitest.config.mts`, `tests/setup.ts`, `playwright.config.ts`, `tests/e2e/prepare-db.ts`).
+
+**Why:** Schema has one source (`schema.ts`) with no migration files to maintain; Vitest isolates modules per file, so each file gets a fresh DB. E2E tests the production build and stays out of the developer's data.
+
+**Consequences:** E2E takes ~40 s plus build time. Vitest 4 rather than 5, since Vitest 5 needs `@types/node` 22+ and the project targets Node 20. With `(app)/loading.tsx` streaming, the document not-found page returns HTTP 200 (UI and API still say not found / 404).
+
+---

@@ -3,14 +3,13 @@ import { notFound } from "next/navigation";
 import { DocumentEditor } from "@/components/document-editor";
 import { getDocumentForUser } from "@/server/documents";
 import { AppError } from "@/server/errors";
-import { getCurrentUser } from "@/server/session";
+import { requirePageUser } from "@/server/session";
 
 export default async function DocumentPage({
   params,
 }: PageProps<"/documents/[id]">) {
   const { id } = await params;
-  // The (app) layout already redirected logged-out visitors.
-  const user = (await getCurrentUser())!;
+  const user = await requirePageUser();
 
   let result;
   try {
