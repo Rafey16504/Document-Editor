@@ -24,6 +24,24 @@ Chronological record of development sessions. **Newest entries at the top.**
 ---
 -->
 
+## 2026-10-29 — README
+
+**Goal:** Add a project README (brought forward from session 7).
+
+**Done:**
+- `README.md`: features, supported import types and limits, demo users, local setup, env vars, tests, structure, scope, links to docs
+
+**Decisions made:** none
+
+**Issues / blockers:**
+- Live URL is a placeholder until deploy (session 6)
+
+**Next steps:**
+- [ ] Session 6: add the live URL to `README.md`
+- [ ] Session 7: review README against the brief's deliverables
+
+---
+
 ## 2026-10-29 — Session 5: tests + hardening
 
 **Goal:** Vitest unit tests (access rules, import conversion, validation), Playwright smoke test of the main flow, error/empty/loading states.
