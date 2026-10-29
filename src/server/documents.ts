@@ -60,10 +60,16 @@ export async function listSharedDocuments(
     .orderBy(desc(documents.updatedAt));
 }
 
-export async function createDocument(userId: string): Promise<DocumentSummary> {
+export async function createDocument(
+  userId: string,
+  init: { title: string; content: unknown } = {
+    title: DEFAULT_TITLE,
+    content: EMPTY_DOC,
+  },
+): Promise<DocumentSummary> {
   const [doc] = await db
     .insert(documents)
-    .values({ ownerId: userId, title: DEFAULT_TITLE, content: EMPTY_DOC })
+    .values({ ownerId: userId, ...init })
     .returning(summaryColumns);
   return doc;
 }

@@ -238,3 +238,41 @@ Important decisions made during development, with the reasoning behind them. Ent
 **Consequences:** Session 3 only adds the shares API/UI and viewer UI. `requireAccess()` returns 404 for no access and 403 for an insufficient role on a visible doc.
 
 ---
+
+## D-012: HTML → Tiptap JSON on the server with `@tiptap/html/server`
+
+- **Date:** 2026-10-29
+- **Status:** Accepted
+
+**Context:** Markdown and .docx imports produce HTML that must become Tiptap JSON on the server, limited to what the editor supports.
+
+**Options considered:**
+1. `generateJSON` from `@tiptap/html/server` (needs `happy-dom`) with the shared `editorExtensions`.
+2. ProseMirror `DOMParser` + `linkedom`, wired up by hand.
+
+**Decision:** Option 1 (`src/server/import.ts`).
+
+**Why:** Official Tiptap path; the editor's own schema decides what survives, so imports can never contain nodes the editor can't render.
+
+**Consequences:** `happy-dom` is a server dependency (Turbopack bundles it fine). Unsupported content is dropped: images, links (off in the schema), scripts; tables become plain paragraphs.
+
+---
+
+## D-013: Document body limit raised to 4 MB
+
+- **Date:** 2026-10-29
+- **Status:** Accepted
+
+**Context:** A 2 MB import can produce well over 1 MB of Tiptap JSON, so with the old 1 MB PATCH cap the imported doc could never autosave.
+
+**Options considered:**
+1. Raise the limit for PATCH and check imports against the same limit.
+2. Keep 1 MB and reject imports whose JSON is over it.
+
+**Decision:** Option 1, chosen by the user. 4 MB, one constant `MAX_DOCUMENT_BYTES` (`src/lib/validation.ts`).
+
+**Why:** Normal 2 MB files fit; 4 MB stays under Vercel's 4.5 MB request body cap (5 MB would fail there).
+
+**Consequences:** Pathological files (e.g. 2 MB of one-character lines) are rejected with 413. Documents near the cap are slow to render in the editor.
+
+---
