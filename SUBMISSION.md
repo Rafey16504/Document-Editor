@@ -3,8 +3,9 @@
 Full Stack Product Engineer assessment: a lightweight collaborative document editor.
 
 - **Live product:** https://document-editor-ajaia.vercel.app
-- **Source:** https://github.com/Rafey16504/Document-Editor (also in this folder)
-- **Walkthrough video:** see [`VIDEO_URL.txt`](VIDEO_URL.txt)
+- **Source:** https://github.com/Rafey16504/Document-Editor
+- **Google Drive:** https://drive.google.com/drive/folders/1Y61PMvy3DI1VDxbkkUZfBbNUbbuTkFJA?usp=sharing
+- **Walkthrough video:** https://drive.google.com/file/d/17sLJhmuQYZx3YkN2DB9Y43Xtf14CDWGX/view?usp=sharing
 
 ## Test accounts
 
