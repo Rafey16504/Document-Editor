@@ -1,0 +1,8 @@
+.next
+node_modules
+local.db*
+package-lock.json
+docs
+.claude
+CLAUDE.md
+AGENTS.md

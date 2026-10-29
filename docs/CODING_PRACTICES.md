@@ -37,7 +37,8 @@ _Last updated: 2026-10-29_
 - `npm test` must pass before a step is reported done.
 
 ## Git & commits
-- User handles git; no commits from the assistant.
+- User handles git; no commits from the assistant (enforced by `.claude/hooks/git-guard.js`).
+- One branch per session (`session-<n>-<topic>`, see `docs/SESSION_PLAN.md`), branched from `main` and merged back before the next session. At the end of each session the assistant provides the exact commands for that session's branch.
 
 ## Security & secrets
 - No secrets in code; `.env.local` is gitignored, `.env.example` lists keys.
