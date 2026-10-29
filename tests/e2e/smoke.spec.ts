@@ -47,6 +47,15 @@ test("create, edit, share, and the second user sees it", async ({ page }) => {
   await expect(editor.locator("strong")).toHaveText("Hello Bob");
   await expect(page.getByLabel("Document title")).toHaveValue(title);
 
+  const download = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Export .md" }).click();
+  const file = await download;
+  expect(file.suggestedFilename()).toBe(`${title}.md`);
+  const stream = await file.createReadStream();
+  const chunks: Buffer[] = [];
+  for await (const chunk of stream) chunks.push(chunk as Buffer);
+  expect(Buffer.concat(chunks).toString("utf8")).toBe("**Hello Bob**\n");
+
   await page.getByRole("button", { name: "Share" }).click();
   const dialog = page.getByRole("dialog", { name: "Share document" });
   await dialog.getByLabel("Email address").fill("bob@ajaia.dev");

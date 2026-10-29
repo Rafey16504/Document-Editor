@@ -9,6 +9,7 @@ import { DEFAULT_TITLE } from "@/lib/document-defaults";
 import { editorExtensions } from "@/lib/editor-extensions";
 import { TITLE_MAX } from "@/lib/validation";
 import { EditorToolbar } from "./editor-toolbar";
+import { ExportButton } from "./export-button";
 import { RoleBadge } from "./role-badge";
 import { ShareDialog } from "./share-dialog";
 import { useAutosave, type SaveStatus } from "./use-autosave";
@@ -51,11 +52,14 @@ export function DocumentEditor({
     [id],
   );
   const router = useRouter();
-  const { status, error, queue, retry } = useAutosave<DocumentPatch>(save, {
-    // Drop cached RSC payloads once saved, so Back doesn't reopen a stale copy
-    // (which would then autosave over the newer content) and the dashboard is fresh.
-    onLeave: () => router.refresh(),
-  });
+  const { status, error, queue, flush, retry } = useAutosave<DocumentPatch>(
+    save,
+    {
+      // Drop cached RSC payloads once saved, so Back doesn't reopen a stale copy
+      // (which would then autosave over the newer content) and the dashboard is fresh.
+      onLeave: () => router.refresh(),
+    },
+  );
 
   const editor = useEditor({
     extensions: editorExtensions,
@@ -99,6 +103,7 @@ export function DocumentEditor({
               )}
             </p>
           )}
+          <ExportButton documentId={id} beforeExport={flush} />
           {role === "owner" ? (
             <ShareDialog documentId={id} />
           ) : (

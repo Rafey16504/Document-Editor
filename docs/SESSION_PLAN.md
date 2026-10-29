@@ -29,7 +29,7 @@ Token tips: read only the files the session touches; don't re-read docs already 
 | 4 | ☑ | File import | `session-4-import` | `POST /api/documents/import` (.txt/.md/.docx, 2 MB), HTML → Tiptap JSON, upload UI stating supported types, error states | Each file type imports into an editable doc; bad type/size shows a clear error |
 | 5 | ☑ | Tests + hardening | `session-5-tests` | Vitest: access rules, import conversion, validation; Playwright smoke (login → create → edit → share → second user sees it); error/empty/loading states pass | `npm test` and `npm run test:e2e` green |
 | 6 | ☑ | Deploy | `session-6-deploy` | Turso DB, Vercel project, env vars, push schema + seed to prod, verify live flow | Live URL works with the seeded users |
-| 7 | ☐ | Deliverables (+ stretch) | `session-7-deliverables` | README, architecture note, AI workflow note, `SUBMISSION.md`, video URL file, screenshots, video talking points; Markdown export if time allows | Everything on the brief's deliverables list exists |
+| 7 | ☑ | Deliverables (+ stretch) | `session-7-deliverables` | README, architecture note, AI workflow note, `SUBMISSION.md`, video URL file, screenshots, video talking points; Markdown export if time allows | Everything on the brief's deliverables list exists |
 
 ## Kickoff prompts
 
