@@ -9,6 +9,8 @@ import { DEFAULT_TITLE } from "@/lib/document-defaults";
 import { editorExtensions } from "@/lib/editor-extensions";
 import { TITLE_MAX } from "@/lib/validation";
 import { EditorToolbar } from "./editor-toolbar";
+import { RoleBadge } from "./role-badge";
+import { ShareDialog } from "./share-dialog";
 import { useAutosave, type SaveStatus } from "./use-autosave";
 
 type Role = "owner" | "editor" | "viewer";
@@ -77,23 +79,32 @@ export function DocumentEditor({
         <Link href="/" className="text-sm text-neutral-500 hover:underline">
           ← All documents
         </Link>
-        <p
-          aria-live="polite"
-          className={`text-sm ${status === "error" ? "text-red-600" : "text-neutral-500"}`}
-        >
-          {status === "error" && error
-            ? `Save failed: ${error}`
-            : statusText[status]}
-          {status === "error" && (
-            <button
-              type="button"
-              onClick={() => void retry()}
-              className="ml-2 underline"
+        <div className="flex items-center gap-3">
+          {editable && (
+            <p
+              aria-live="polite"
+              className={`text-sm ${status === "error" ? "text-red-600" : "text-neutral-500"}`}
             >
-              Retry
-            </button>
+              {status === "error" && error
+                ? `Save failed: ${error}`
+                : statusText[status]}
+              {status === "error" && (
+                <button
+                  type="button"
+                  onClick={() => void retry()}
+                  className="ml-2 underline"
+                >
+                  Retry
+                </button>
+              )}
+            </p>
           )}
-        </p>
+          {role === "owner" ? (
+            <ShareDialog documentId={id} />
+          ) : (
+            <RoleBadge role={role} />
+          )}
+        </div>
       </div>
 
       <input
