@@ -20,12 +20,15 @@ npm run db:seed                # create demo users
 npm run dev                    # http://localhost:3000
 ```
 
-Tests _(planned, session 5)_:
+Tests (D-014):
 
 ```bash
-npm test                       # unit tests (Vitest)
-npm run test:e2e               # Playwright smoke test
+npm test                       # unit tests (Vitest, in-memory libSQL, no setup needed)
+npm run test:e2e               # Playwright smoke test; first run: npx playwright install chromium
 ```
+
+- Unit (`tests/*.test.ts`): access rules and role enforcement, shares, import conversion (fixtures in `tests/fixtures/`), validation, `readJson`/`handle`, session tokens. `tests/setup.ts` pushes `schema.ts` into a fresh in-memory DB per test file.
+- E2E (`tests/e2e/smoke.spec.ts`): builds and starts the app on port 3210 against `e2e.db` (recreated and seeded by `tests/e2e/prepare-db.ts`), so `local.db` and a running `next dev` are untouched. Covers login → create → format → rename → share → second user sees and edits it, Markdown import, import errors, empty state, document not-found, logged-out redirect.
 
 Seeded demo users (pick one on the login page): `alice@ajaia.dev`, `bob@ajaia.dev`, `carol@ajaia.dev`.
 
@@ -49,7 +52,7 @@ Seeded demo users (pick one on the login page): `alice@ajaia.dev`, `bob@ajaia.de
 | Styling | Tailwind CSS 4 + `@tailwindcss/typography` for document content | D-007 |
 | Validation | Zod | — |
 | Import | `marked`, `mammoth`, `@tiptap/html` (happy-dom) | D-006, D-012 |
-| Tests | Vitest, Playwright | — |
+| Tests | Vitest 4, Playwright | D-014 |
 
 ## Data model
 
@@ -68,7 +71,7 @@ Mocked auth (D-004), in `src/server/session.ts`:
 
 - Cookie `session` = `<userId>.<expiresAtMs>.<HMAC-SHA256 signature>` (Web Crypto, keyed by `SESSION_SECRET`, which must be 32+ chars). HTTP-only, `SameSite=Lax`, `Secure` in production, 7-day expiry.
 - `getCurrentUser()` returns `null` for a missing, tampered, expired or unknown-user cookie; it is cached per request.
-- Pages: the `src/app/(app)/layout.tsx` group redirects to `/login` when logged out. API routes call `requireUser()` (401).
+- Pages: the `(app)` layout and each page call `requirePageUser()`, which redirects to `/login` when logged out (Next renders layouts and pages concurrently, so a layout-only guard lets the page run with no user). API routes call `requireUser()` (401).
 - Route handlers are wrapped in `handle()` (`src/server/route.ts`): `AppError` → its status, `ZodError` → 400, anything else → logged 500, always `{ error }`.
 
 ## Access rules
@@ -98,10 +101,12 @@ Drizzle → libSQL (local.db | Turso)
 
 Pages are server components that call `src/server/*` directly (dashboard with "My documents" and "Shared with me" via `listSharedDocuments()`, editor page); client components call the API for mutations and then `router.refresh()` (D-010).
 
+Page states in `src/app/(app)/`: `loading.tsx` (skeleton while the dashboard or a document loads), `error.tsx` (boundary with Try again / My documents), `documents/[id]/not-found.tsx` (same message for missing and inaccessible docs). Because `loading.tsx` streams, the not-found page is served with HTTP 200; the API still returns 404.
+
 ## Editor
 
 - Extensions: `src/lib/editor-extensions.ts` (StarterKit, headings 1–3, links off). Shared with file import so stored JSON only contains supported nodes.
-- `src/components/document-editor.tsx`: title input + Tiptap (`immediatelyRender: false`); toolbar in `editor-toolbar.tsx` (B/I/U, H1–H3, lists, undo/redo; buttons don't take focus). Takes the caller's `role`: owners get a Share button (`share-dialog.tsx`, native `<dialog>`: grant by email, change role, remove); others see a role badge (`role-badge.tsx`); viewers get no toolbar, no save status and a read-only editor.
+- `src/components/document-editor.tsx`: title input + Tiptap (`immediatelyRender: false`); toolbar in `editor-toolbar.tsx` (B/I/U, H1–H3, lists, undo/redo; buttons don't take focus; its `useEditorState` only mounts once the editor exists, otherwise it stays blank until the first transaction). Takes the caller's `role`: owners get a Share button (`share-dialog.tsx`, native `<dialog>`: grant by email, change role, remove); others see a role badge (`role-badge.tsx`); viewers get no toolbar, no save status and a read-only editor.
 - Access changes are not pushed live: a user whose access is revoked or downgraded sees "Save failed" on their next autosave (404 / 403).
 - Autosave (`use-autosave.ts`, D-009): changes merge into one pending patch, debounced 800 ms, one request in flight at a time. Status: Unsaved changes / Saving… / All changes saved / Save failed + Retry. `beforeunload` warns on unsaved changes; leaving the editor in-app flushes, then refreshes the router cache.
 - An empty title is stored as "Untitled document"; titles max 200 chars; PATCH bodies max 4 MB (413, D-013).

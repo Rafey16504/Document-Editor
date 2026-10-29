@@ -1,12 +1,10 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { LogoutButton } from "@/components/logout-button";
-import { getCurrentUser } from "@/server/session";
+import { requirePageUser } from "@/server/session";
 
-// Page-level guard only; API routes enforce auth themselves via requireUser().
+// Pages guard themselves too; API routes enforce auth via requireUser().
 export default async function AppLayout({ children }: LayoutProps<"/">) {
-  const user = await getCurrentUser();
-  if (!user) redirect("/login");
+  const user = await requirePageUser();
 
   return (
     <>

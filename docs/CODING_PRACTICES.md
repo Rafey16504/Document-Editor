@@ -29,12 +29,13 @@ _Last updated: 2026-10-29_
 - Validate every request body with Zod (`src/lib/validation.ts`).
 - Server code throws `AppError(status, message)`; route handlers convert it to JSON `{ error }` with that status. Unknown errors → 500 with a generic message, logged with `console.error`.
 - Access checks always happen on the server via `getAccess()`; the UI only hides controls.
+- Pages get the user with `requirePageUser()`, never `getCurrentUser()!`: layouts don't guard pages in Next 16. (Added 2026-10-29)
 - Return 404 (not 403) for documents the user cannot see, to avoid leaking existence.
 
 ## Testing
-- Unit test access rules and import conversion (Vitest, in-memory libSQL).
-- One Playwright smoke test for the main flow.
-- `npm test` must pass before a step is reported done.
+- Unit test access rules and import conversion (Vitest, in-memory libSQL). Tests create their own users/docs via `tests/helpers.ts`; never depend on seeded data. (D-014)
+- One Playwright smoke test for the main flow, against its own `e2e.db`. Prefer role/label locators; Next's route announcer also has `role="alert"`, so match error messages by text.
+- `npm test` must pass before a step is reported done; run `npm run test:e2e` when UI flows change.
 
 ## Git & commits
 - User handles git; no commits from the assistant (enforced by `.claude/hooks/git-guard.js`).

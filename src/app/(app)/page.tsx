@@ -4,7 +4,7 @@ import { ImportDocumentButton } from "@/components/import-document-button";
 import { NewDocumentButton } from "@/components/new-document-button";
 import { RoleBadge } from "@/components/role-badge";
 import { listOwnedDocuments, listSharedDocuments } from "@/server/documents";
-import { getCurrentUser } from "@/server/session";
+import { requirePageUser } from "@/server/session";
 
 const dateFormat = new Intl.DateTimeFormat("en", {
   dateStyle: "medium",
@@ -17,8 +17,7 @@ const emptyClass =
   "mt-4 rounded-lg border border-dashed border-neutral-300 p-8 text-center text-neutral-500";
 
 export default async function DashboardPage() {
-  // The (app) layout already redirected logged-out visitors.
-  const user = (await getCurrentUser())!;
+  const user = await requirePageUser();
   const [owned, shared] = await Promise.all([
     listOwnedDocuments(user.id),
     listSharedDocuments(user.id),

@@ -6,3 +6,6 @@ docs
 .claude
 CLAUDE.md
 AGENTS.md
+e2e.db*
+test-results
+playwright-report

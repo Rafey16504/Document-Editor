@@ -1,4 +1,5 @@
 import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import { cache } from "react";
 import type { User } from "./db/schema";
 import { AppError } from "./errors";
@@ -84,6 +85,16 @@ export const getCurrentUser = cache(async (): Promise<User | null> => {
   const userId = await verifySessionToken(token);
   return userId ? getUserById(userId) : null;
 });
+
+/**
+ * For layouts and pages: the logged-in user, or a redirect to /login. Next renders
+ * layouts and pages concurrently, so each page checks for itself.
+ */
+export async function requirePageUser(): Promise<User> {
+  const user = await getCurrentUser();
+  if (!user) redirect("/login");
+  return user;
+}
 
 /** For route handlers: the logged-in user, or a 401 AppError. */
 export async function requireUser(): Promise<User> {
