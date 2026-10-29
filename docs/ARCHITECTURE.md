@@ -8,7 +8,7 @@ _Last updated: 2026-10-29_
 
 A lightweight collaborative document editor (Google Docs-inspired) built as a single Next.js app. Users create, rename, edit and reopen rich-text documents, import `.txt` / `.md` / `.docx` files as new documents, and share documents with other users as **viewer** or **editor**.
 
-## Run locally _(planned: commands are final once the scaffold lands)_
+## Run locally
 
 Prerequisites: Node 20+ and npm. No database install needed (uses a local SQLite file).
 
@@ -20,7 +20,7 @@ npm run db:seed                # create demo users
 npm run dev                    # http://localhost:3000
 ```
 
-Tests:
+Tests _(planned, session 5)_:
 
 ```bash
 npm test                       # unit tests (Vitest)
@@ -41,21 +41,34 @@ Seeded demo users (pick one on the login page): `alice@ajaia.dev`, `bob@ajaia.de
 
 | Layer | Choice | Decision |
 |-------|--------|----------|
-| App / API | Next.js App Router, TypeScript strict | D-001 |
+| App / API | Next.js 16 App Router (Cache Components off), TypeScript strict | D-001, D-008 |
 | Editor | Tiptap (StarterKit + Underline), JSON storage | D-002 |
 | DB | Drizzle ORM + libSQL (SQLite file locally, Turso in prod) | D-003 |
 | Hosting | Vercel | D-003 |
 | Auth | Seeded users, signed cookie session (mocked) | D-004 |
+| Styling | Tailwind CSS 4 | D-007 |
 | Validation | Zod | — |
 | Tests | Vitest, Playwright | — |
 
-## Data model _(planned)_
+## Data model
+
+Defined in `src/server/db/schema.ts`; ids are UUID text, timestamps are integer milliseconds, foreign keys cascade on delete.
 
 ```
 users            (id, email UNIQUE, name)
 documents        (id, owner_id → users, title, content JSON, created_at, updated_at)
-document_shares  (document_id → documents, user_id → users, role 'viewer'|'editor', PK(document_id, user_id))
+document_shares  (document_id → documents, user_id → users, role 'viewer'|'editor', created_at,
+                  PK(document_id, user_id), INDEX(user_id))
 ```
+
+## Auth / session
+
+Mocked auth (D-004), in `src/server/session.ts`:
+
+- Cookie `session` = `<userId>.<expiresAtMs>.<HMAC-SHA256 signature>` (Web Crypto, keyed by `SESSION_SECRET`, which must be 32+ chars). HTTP-only, `SameSite=Lax`, `Secure` in production, 7-day expiry.
+- `getCurrentUser()` returns `null` for a missing, tampered, expired or unknown-user cookie; it is cached per request.
+- Pages: the `src/app/(app)/layout.tsx` group redirects to `/login` when logged out. API routes call `requireUser()` (401).
+- Route handlers are wrapped in `handle()` (`src/server/route.ts`): `AppError` → its status, `ZodError` → 400, anything else → logged 500, always `{ error }`.
 
 ## Access rules _(planned)_
 
@@ -84,19 +97,19 @@ Drizzle → libSQL (local.db | Turso)
 
 Editor autosaves: debounced (~800 ms) `PATCH /api/documents/:id` with title/content; UI shows Saving / Saved / Error.
 
-## API _(planned)_
+## API
 
 | Method | Path | Purpose |
 |--------|------|---------|
-| POST | `/api/session` | Log in as a seeded user |
-| DELETE | `/api/session` | Log out |
-| GET | `/api/documents` | List `{ owned, shared }` |
-| POST | `/api/documents` | Create blank document |
-| GET | `/api/documents/:id` | Fetch document + caller's role |
-| PATCH | `/api/documents/:id` | Update title/content (owner/editor) |
-| DELETE | `/api/documents/:id` | Delete (owner) |
-| POST | `/api/documents/import` | Upload file → new document |
-| GET/POST/DELETE | `/api/documents/:id/shares` | List / grant / revoke access (owner) |
+| POST | `/api/session` | Log in as a seeded user `{ userId }` → `{ user }` (404 if unknown) |
+| DELETE | `/api/session` | Log out (204) |
+| GET | `/api/documents` | List `{ owned, shared }` _(planned)_ |
+| POST | `/api/documents` | Create blank document _(planned)_ |
+| GET | `/api/documents/:id` | Fetch document + caller's role _(planned)_ |
+| PATCH | `/api/documents/:id` | Update title/content (owner/editor) _(planned)_ |
+| DELETE | `/api/documents/:id` | Delete (owner) _(planned)_ |
+| POST | `/api/documents/import` | Upload file → new document _(planned)_ |
+| GET/POST/DELETE | `/api/documents/:id/shares` | List / grant / revoke access (owner) _(planned)_ |
 
 ## File import _(planned)_
 

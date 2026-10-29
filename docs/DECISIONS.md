@@ -12,6 +12,8 @@ Important decisions made during development, with the reasoning behind them. Ent
 | D-004 | 2026-10-29 | Mocked auth: seeded users, pick-to-login, signed cookie session | Accepted |
 | D-005 | 2026-10-29 | Sharing model: owner + per-user grants with viewer/editor role | Accepted |
 | D-006 | 2026-10-29 | File upload = import .txt/.md/.docx into a new document | Accepted |
+| D-007 | 2026-10-29 | Tailwind CSS for styling | Accepted |
+| D-008 | 2026-10-29 | Next 16 with Cache Components turned off | Accepted |
 
 <!-- Status values: Proposed | Accepted | Superseded by D-XXX | Rejected -->
 
@@ -134,5 +136,44 @@ Important decisions made during development, with the reasoning behind them. Ent
 **Why:** Directly feeds the core editing flow; no blob storage needed.
 
 **Consequences:** Unsupported formatting (images, tables) is dropped during import; stated in UI and README.
+
+---
+
+## D-007: Tailwind CSS for styling
+
+- **Date:** 2026-10-29
+- **Status:** Accepted
+
+**Context:** Need a clean, consistent UI across dashboard, editor toolbar and dialogs without spending the timebox on CSS.
+
+**Options considered:**
+1. Tailwind CSS: create-next-app default, utility classes, no extra files.
+2. CSS Modules: zero dependencies, but more hand-written CSS per component.
+3. Component library (shadcn/ui, MUI): fast widgets, but more setup and weight.
+
+**Decision:** Tailwind CSS (v4, as scaffolded by create-next-app).
+
+**Why:** Fastest path to a tidy UI; styles stay next to markup.
+
+**Consequences:** Editor content styling (headings, lists inside Tiptap) needs a small amount of custom CSS or `@tailwindcss/typography` in session 2.
+
+---
+
+## D-008: Next 16 with Cache Components turned off
+
+- **Date:** 2026-10-29
+- **Status:** Accepted
+
+**Context:** `create-next-app@16.4` enables `cacheComponents` (and `partialPrefetching`) by default. With it, every `cookies()` read must sit inside a `<Suspense>` boundary, and a top-level session check in a layout is discouraged.
+
+**Options considered:**
+1. Keep Cache Components: push session reads into Suspense boundaries; redirects happen mid-stream.
+2. Turn it off: classic dynamic rendering; a plain session check in the `(app)` layout.
+
+**Decision:** Option 2 (`cacheComponents: false` in `next.config.ts`; `partialPrefetching` removed since it requires it).
+
+**Why:** Every page is per-user and dynamic, so the static shell gains nothing; option 2 keeps auth and the editor pages simple.
+
+**Consequences:** Next says both become always-on in the next major; upgrading would need the Suspense pattern from `node_modules/next/dist/docs/01-app/02-guides/authentication-with-cache-components.md`.
 
 ---

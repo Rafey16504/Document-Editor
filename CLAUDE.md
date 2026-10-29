@@ -48,8 +48,10 @@ This project keeps four running documents in `docs/`. Read them at the start of 
 ## Commands
 
 <!-- Fill in once the project is set up. -->
-- Install: _TBD_
-- Dev: _TBD_
-- Test: _TBD_
-- Lint / format: _TBD_
-- Build: _TBD_
+- Install: `npm install`, then `cp .env.example .env.local`
+- DB: `npm run db:push` (apply schema), `npm run db:seed` (demo users, safe to re-run)
+- Dev: `npm run dev`
+- Typecheck: `npx next typegen && npx tsc --noEmit` (typegen creates the global `LayoutProps`/`PageProps` types)
+- Lint / format: `npm run lint`, `npm run format`
+- Build: `npm run build`
+- Test: _TBD (session 5)_
