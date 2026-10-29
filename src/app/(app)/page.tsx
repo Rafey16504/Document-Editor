@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { DeleteDocumentButton } from "@/components/delete-document-button";
+import { ImportDocumentButton } from "@/components/import-document-button";
 import { NewDocumentButton } from "@/components/new-document-button";
 import { RoleBadge } from "@/components/role-badge";
 import { listOwnedDocuments, listSharedDocuments } from "@/server/documents";
@@ -28,8 +29,15 @@ export default async function DashboardPage() {
       <section>
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-semibold">My documents</h1>
-          <NewDocumentButton />
+          <div className="flex items-center gap-3">
+            <ImportDocumentButton />
+            <NewDocumentButton />
+          </div>
         </div>
+        <p className="mt-1 text-right text-sm text-neutral-500">
+          Import .txt, .md or .docx (max 2 MB). Images and tables aren&apos;t
+          kept.
+        </p>
 
         {owned.length === 0 ? (
           <p className={emptyClass}>

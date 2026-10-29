@@ -6,6 +6,10 @@ export const loginSchema = z.object({
 
 export const TITLE_MAX = 200;
 
+// Max stored document JSON, enforced on autosave and on import so an imported
+// doc can always be saved again. Stays under Vercel's 4.5 MB request cap (D-013).
+export const MAX_DOCUMENT_BYTES = 4_000_000;
+
 // Shape check only; the editor schema drops unknown nodes when it loads the JSON.
 const docContentSchema = z.looseObject({
   type: z.literal("doc"),

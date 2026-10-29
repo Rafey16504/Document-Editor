@@ -24,6 +24,37 @@ Chronological record of development sessions. **Newest entries at the top.**
 ---
 -->
 
+## 2026-10-29 — Session 4: file import
+
+**Goal:** `POST /api/documents/import` for .txt/.md/.docx (2 MB), HTML → Tiptap JSON, upload UI with stated limits and error states.
+
+**Done:**
+- Added `@tiptap/html`, `@tiptap/core`, `happy-dom`, `mammoth`, `marked` (`package.json`)
+- Shared rules `IMPORT_EXTENSIONS`, `IMPORT_MAX_BYTES`, `importExtension()` (`src/lib/import-rules.ts`)
+- `convertFile()`, `textToDoc()`, `htmlToDoc()` (`src/server/import.ts`); `createDocument(userId, init?)` (`src/server/documents.ts`)
+- Import route with Content-Length pre-check, form/file validation (`src/app/api/documents/import/route.ts`)
+- `MAX_DOCUMENT_BYTES` = 4 MB shared by PATCH and import (`src/lib/validation.ts`, `src/app/api/documents/[id]/route.ts`)
+- "Import file" button + limits hint on the dashboard (`src/components/import-document-button.tsx`, `src/app/(app)/page.tsx`)
+- Verified: `tsc`, lint, Prettier, `next build` clean. curl against `next start`: .txt (BOM, CRLF, line breaks, `<b>` kept as literal text), .md (headings, marks, nested lists, quote, code block, hr; script/image/link dropped, table flattened), .docx (H1/H2, bold/italic/underline, bullet + numbered lists; table flattened, image dropped), `.TXT` uppercase → 201 with filename title; empty/whitespace, image-only .docx → 400 "File is empty"; corrupt .docx 400; .pdf / no extension 400; 2 MB + 1 byte 413; 1.9 MB of one-char lines 413 (JSON > 4 MB); no file field 400; JSON body 400; anon 401; PATCH 3.9 MB 200, 4.1 MB 413. Playwright: each type imported via the button → opens editor with content → edit autosaves → survives reload; .pdf / >2 MB / empty / corrupt show the dashboard error.
+
+**Bugs found and fixed while testing:**
+- mammoth drops underline by default → `styleMap: ["u => u"]` (`src/server/import.ts`).
+
+**Decisions made:** D-012, D-013
+
+**Issues / blockers:**
+- The already-running `next dev` on :3000 kept serving the old `createDocument` after `npm install` (imports got default title/empty content); a fresh build was correct. Restart the dev server after pulling.
+- A document holding one 3.9 MB text node froze the browser tab: the size limit allows docs the editor renders slowly. Realistic imports are far smaller.
+- Imported Markdown images/tables leave an empty paragraph or flattened text; acceptable per D-006.
+- Requests without Content-Length are parsed before the 2 MB file check (bounded by Vercel's 4.5 MB cap).
+
+**Next steps:**
+- [ ] User: create branch `session-4-import`, commit, push, merge to `main`; restart `npm run dev`
+- [ ] Session 5: unit-test `textToDoc`, `convertFile` (each type + error cases, fixtures in `tests/fixtures/`), `importExtension`; e2e import via the file input
+- [ ] Session 7: state import limits (types, 2 MB, images/tables/links dropped) in README
+
+---
+
 ## 2026-10-29 — Session 3: sharing
 
 **Goal:** Shares API (grant by email, role change, revoke), share dialog, "Shared with me" list with role badges, viewer limits.

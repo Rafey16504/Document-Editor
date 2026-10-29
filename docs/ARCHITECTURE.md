@@ -48,6 +48,7 @@ Seeded demo users (pick one on the login page): `alice@ajaia.dev`, `bob@ajaia.de
 | Auth | Seeded users, signed cookie session (mocked) | D-004 |
 | Styling | Tailwind CSS 4 + `@tailwindcss/typography` for document content | D-007 |
 | Validation | Zod | — |
+| Import | `marked`, `mammoth`, `@tiptap/html` (happy-dom) | D-006, D-012 |
 | Tests | Vitest, Playwright | — |
 
 ## Data model
@@ -99,11 +100,11 @@ Pages are server components that call `src/server/*` directly (dashboard with "M
 
 ## Editor
 
-- Extensions: `src/lib/editor-extensions.ts` (StarterKit, headings 1–3, links off). Shared with the planned import so stored JSON only contains supported nodes.
+- Extensions: `src/lib/editor-extensions.ts` (StarterKit, headings 1–3, links off). Shared with file import so stored JSON only contains supported nodes.
 - `src/components/document-editor.tsx`: title input + Tiptap (`immediatelyRender: false`); toolbar in `editor-toolbar.tsx` (B/I/U, H1–H3, lists, undo/redo; buttons don't take focus). Takes the caller's `role`: owners get a Share button (`share-dialog.tsx`, native `<dialog>`: grant by email, change role, remove); others see a role badge (`role-badge.tsx`); viewers get no toolbar, no save status and a read-only editor.
 - Access changes are not pushed live: a user whose access is revoked or downgraded sees "Save failed" on their next autosave (404 / 403).
 - Autosave (`use-autosave.ts`, D-009): changes merge into one pending patch, debounced 800 ms, one request in flight at a time. Status: Unsaved changes / Saving… / All changes saved / Save failed + Retry. `beforeunload` warns on unsaved changes; leaving the editor in-app flushes, then refreshes the router cache.
-- An empty title is stored as "Untitled document"; titles max 200 chars; PATCH bodies max 1 MB (413).
+- An empty title is stored as "Untitled document"; titles max 200 chars; PATCH bodies max 4 MB (413, D-013).
 
 ## API
 
@@ -114,16 +115,21 @@ Pages are server components that call `src/server/*` directly (dashboard with "M
 | GET | `/api/documents` | List `{ owned, shared }` _(deferred, D-010: pages list server-side)_ |
 | POST | `/api/documents` | Create blank document → `201 { document }` |
 | GET | `/api/documents/:id` | Fetch `{ document, role }` (any access) |
-| PATCH | `/api/documents/:id` | Update `{ title?, content? }` (owner/editor) → `{ document }` summary |
+| PATCH | `/api/documents/:id` | Update `{ title?, content? }` (owner/editor) → `{ document }` summary; body max 4 MB (D-013) |
 | DELETE | `/api/documents/:id` | Delete (owner) → 204 |
-| POST | `/api/documents/import` | Upload file → new document _(planned)_ |
+| POST | `/api/documents/import` | Multipart `file` (.txt/.md/.docx, ≤ 2 MB) → `201 { document }`. 400 unsupported type / empty / unreadable .docx / no file; 413 over 2 MB or converted JSON over 4 MB |
 | GET | `/api/documents/:id/shares` | List `{ shares: [{ userId, email, name, role }] }` (owner) |
 | POST | `/api/documents/:id/shares` | Grant `{ email, role }`, or change the role if already shared (upsert, owner) → `{ share }`. Email is trimmed + lowercased; unknown email 404, self 400 |
 | DELETE | `/api/documents/:id/shares/:userId` | Revoke (owner) → 204, also when no share existed |
 
-## File import _(planned)_
+## File import
 
-`.txt` → paragraphs; `.md` → `marked` → HTML; `.docx` → `mammoth` → HTML. HTML is converted to Tiptap JSON with the same extension list as the editor, so unsupported nodes (images, tables) are dropped. Max 2 MB.
+"Import file" on the dashboard (`src/components/import-document-button.tsx`) → `POST /api/documents/import` → `convertFile()` (`src/server/import.ts`) → `createDocument()`, then the editor opens the new doc. Allowed types and the 2 MB limit live in `src/lib/import-rules.ts`, checked in the browser for instant feedback and enforced on the server (by extension, since browsers send unreliable MIME types).
+
+- `.txt`: decoded as UTF-8 (BOM stripped), built straight into Tiptap JSON: blank lines split paragraphs, single newlines become hard breaks.
+- `.md`: `marked` (GFM) → HTML; `.docx`: `mammoth` → HTML (underline mapped, images skipped).
+- HTML → JSON via `generateJSON` from `@tiptap/html/server` (happy-dom) with the editor's extension list (D-012), so scripts, images and links are dropped and tables flatten to text.
+- Title = filename without extension (max 200 chars). Empty result → 400 "File is empty"; converted JSON over 4 MB → 413 so every imported doc can still autosave (D-013).
 
 ## Prioritized / deprioritized
 
