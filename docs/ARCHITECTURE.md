@@ -72,7 +72,7 @@ Mocked auth (D-004), in `src/server/session.ts`:
 
 ## Access rules
 
-Single source of truth: `getAccess(userId, documentId)` in `src/server/access.ts` returns `owner | editor | viewer | null`. `requireAccess(userId, documentId, allowed)` throws 404 when the user has no access and 403 when they can see the document but their role is not allowed (D-011). Shares are already read; granting them arrives in session 3.
+Single source of truth: `getAccess(userId, documentId)` in `src/server/access.ts` returns `owner | editor | viewer | null`. `requireAccess(userId, documentId, allowed)` throws 404 when the user has no access and 403 when they can see the document but their role is not allowed (D-011). Shares are managed in `src/server/shares.ts` (owner only).
 
 | Action | Owner | Editor | Viewer |
 |--------|:-----:|:------:|:------:|
@@ -95,12 +95,13 @@ Server modules (src/server/*)             access checks, business logic, import 
 Drizzle → libSQL (local.db | Turso)
 ```
 
-Pages are server components that call `src/server/*` directly (dashboard, editor page); client components call the API for mutations and then `router.refresh()` (D-010).
+Pages are server components that call `src/server/*` directly (dashboard with "My documents" and "Shared with me" via `listSharedDocuments()`, editor page); client components call the API for mutations and then `router.refresh()` (D-010).
 
 ## Editor
 
 - Extensions: `src/lib/editor-extensions.ts` (StarterKit, headings 1–3, links off). Shared with the planned import so stored JSON only contains supported nodes.
-- `src/components/document-editor.tsx`: title input + Tiptap (`immediatelyRender: false`); toolbar in `editor-toolbar.tsx` (B/I/U, H1–H3, lists, undo/redo; buttons don't take focus). Takes the caller's `role`; viewers get no toolbar and a read-only editor.
+- `src/components/document-editor.tsx`: title input + Tiptap (`immediatelyRender: false`); toolbar in `editor-toolbar.tsx` (B/I/U, H1–H3, lists, undo/redo; buttons don't take focus). Takes the caller's `role`: owners get a Share button (`share-dialog.tsx`, native `<dialog>`: grant by email, change role, remove); others see a role badge (`role-badge.tsx`); viewers get no toolbar, no save status and a read-only editor.
+- Access changes are not pushed live: a user whose access is revoked or downgraded sees "Save failed" on their next autosave (404 / 403).
 - Autosave (`use-autosave.ts`, D-009): changes merge into one pending patch, debounced 800 ms, one request in flight at a time. Status: Unsaved changes / Saving… / All changes saved / Save failed + Retry. `beforeunload` warns on unsaved changes; leaving the editor in-app flushes, then refreshes the router cache.
 - An empty title is stored as "Untitled document"; titles max 200 chars; PATCH bodies max 1 MB (413).
 
@@ -116,7 +117,9 @@ Pages are server components that call `src/server/*` directly (dashboard, editor
 | PATCH | `/api/documents/:id` | Update `{ title?, content? }` (owner/editor) → `{ document }` summary |
 | DELETE | `/api/documents/:id` | Delete (owner) → 204 |
 | POST | `/api/documents/import` | Upload file → new document _(planned)_ |
-| GET/POST/DELETE | `/api/documents/:id/shares` | List / grant / revoke access (owner) _(planned)_ |
+| GET | `/api/documents/:id/shares` | List `{ shares: [{ userId, email, name, role }] }` (owner) |
+| POST | `/api/documents/:id/shares` | Grant `{ email, role }`, or change the role if already shared (upsert, owner) → `{ share }`. Email is trimmed + lowercased; unknown email 404, self 400 |
+| DELETE | `/api/documents/:id/shares/:userId` | Revoke (owner) → 204, also when no share existed |
 
 ## File import _(planned)_
 

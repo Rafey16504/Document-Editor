@@ -24,6 +24,31 @@ Chronological record of development sessions. **Newest entries at the top.**
 ---
 -->
 
+## 2026-10-29 — Session 3: sharing
+
+**Goal:** Shares API (grant by email, role change, revoke), share dialog, "Shared with me" list with role badges, viewer limits.
+
+**Done:**
+- `shareSchema` (email trimmed + lowercased, role viewer/editor), `SHARE_ROLES`, `Share` type (`src/lib/validation.ts`)
+- `listShares` / `upsertShare` / `revokeShare`, all owner-only via `requireAccess(CAN_MANAGE)`; unknown email 404, self-share 400, revoke idempotent (`src/server/shares.ts`)
+- `GET/POST /api/documents/:id/shares`, `DELETE /api/documents/:id/shares/:userId` (`src/app/api/documents/[id]/shares/**`)
+- `listSharedDocuments()` with owner name + role (`src/server/documents.ts`); dashboard "Shared with me" section with empty state, no Delete on shared docs (`src/app/(app)/page.tsx`)
+- Share dialog (`src/components/share-dialog.tsx`), role badge (`src/components/role-badge.tsx`); editor header shows Share for owners, badge for others, no save status for viewers (`src/components/document-editor.tsx`)
+- Verified: `tsc`, lint, Prettier, `next build` clean. Scripted curl checks, 36/36 (401 anon; 400 bad JSON/email/role/self; 404 unknown email, no-access user, unknown doc, after revoke/delete; 403 viewer/editor on shares API and DELETE doc, viewer PATCH; upsert role change; sorted list; idempotent revoke). Playwright, 27/27: Alice shares with Bob as viewer → Bob sees it under "Shared with me" with badge and owner, read-only editor with no toolbar; upgrade to editor → Bob's edit reaches Alice; revoke → Bob's open tab shows "Save failed: Document not found", page 404s, list no longer shows it; dialog errors for unknown email / self-share.
+
+**Decisions made:** none (POST upsert for grant + role change, noted in `ARCHITECTURE.md`)
+
+**Issues / blockers:**
+- Access changes aren't pushed to open tabs; affected users find out on their next save (consistent with D-009).
+- API and browser checks were scripted by hand; not yet in the test suite.
+
+**Next steps:**
+- [ ] User: create branch `session-3-sharing`, commit, push, merge to `main`
+- [ ] Session 4: file import (`POST /api/documents/import`, .txt/.md/.docx, 2 MB)
+- [ ] Session 5: unit-test `shareSchema` and `upsertShare`/`revokeShare`/`listSharedDocuments`; e2e for share → second user sees it (the Playwright flow above is a good template)
+
+---
+
 ## 2026-10-29 — Session 2: documents + editor
 
 **Goal:** Dashboard, create/get/update/delete documents, Tiptap editor with toolbar, debounced autosave, inline rename.

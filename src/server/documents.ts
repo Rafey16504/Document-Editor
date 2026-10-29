@@ -9,7 +9,13 @@ import {
   type Access,
 } from "./access";
 import { db } from "./db/client";
-import { documents, type Document } from "./db/schema";
+import {
+  documents,
+  documentShares,
+  users,
+  type Document,
+  type ShareRole,
+} from "./db/schema";
 
 export type DocumentSummary = {
   id: string;
@@ -30,6 +36,27 @@ export async function listOwnedDocuments(
     .select(summaryColumns)
     .from(documents)
     .where(eq(documents.ownerId, userId))
+    .orderBy(desc(documents.updatedAt));
+}
+
+export type SharedDocumentSummary = DocumentSummary & {
+  ownerName: string;
+  role: ShareRole;
+};
+
+export async function listSharedDocuments(
+  userId: string,
+): Promise<SharedDocumentSummary[]> {
+  return db
+    .select({
+      ...summaryColumns,
+      ownerName: users.name,
+      role: documentShares.role,
+    })
+    .from(documentShares)
+    .innerJoin(documents, eq(documents.id, documentShares.documentId))
+    .innerJoin(users, eq(users.id, documents.ownerId))
+    .where(eq(documentShares.userId, userId))
     .orderBy(desc(documents.updatedAt));
 }
 

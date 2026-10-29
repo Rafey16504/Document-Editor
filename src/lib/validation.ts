@@ -22,3 +22,21 @@ export const updateDocumentSchema = z
   });
 
 export type UpdateDocumentInput = z.infer<typeof updateDocumentSchema>;
+
+export const SHARE_ROLES = ["viewer", "editor"] as const;
+
+export const shareSchema = z.object({
+  // Normalized before the format check so " Bob@Ajaia.dev " matches the stored email.
+  email: z.string().trim().toLowerCase().pipe(z.email()),
+  role: z.enum(SHARE_ROLES),
+});
+
+export type ShareInput = z.infer<typeof shareSchema>;
+
+/** A share as the API returns it to the owner. */
+export type Share = {
+  userId: string;
+  email: string;
+  name: string;
+  role: (typeof SHARE_ROLES)[number];
+};
