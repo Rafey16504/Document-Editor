@@ -141,6 +141,11 @@ Page states in `src/app/(app)/`: `loading.tsx` (skeleton while the dashboard or 
 - **Prioritized:** solid editing + autosave, server-enforced sharing with roles, file import, persistence, tests on access rules.
 - **Deprioritized:** real-time co-editing, comments, version history, real authentication, attachments.
 
-## Deployment _(planned)_
+## Deployment
 
-Vercel (GitHub import) + Turso DB. Set the env vars above in Vercel; run `db:push` and `db:seed` once against the Turso URL.
+Live: https://document-editor-ajaia.vercel.app (Vercel Hobby, auto-deploys `main` from GitHub `Rafey16504/Document-Editor`).
+
+- **DB:** Turso `ajaia-docs` in `aws-us-east-1` (near Vercel's default `iad1` function region).
+- **Env vars (Vercel, Production):** `DATABASE_URL`, `DATABASE_AUTH_TOKEN` (read/write, no expiry), `SESSION_SECRET`. Changing one needs a redeploy.
+- **Schema / seed:** run from a local machine with the Turso URL + token in the shell or `.env.local`: `npm run db:push`, `npm run db:seed` (idempotent). Shell `$env:` vars override `.env.local`.
+- Don't use Vercel's Turso Marketplace integration: it sets `TURSO_*` names the app doesn't read.
