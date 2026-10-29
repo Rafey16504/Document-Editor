@@ -24,6 +24,33 @@ Chronological record of development sessions. **Newest entries at the top.**
 ---
 -->
 
+## 2026-10-29 — Session 6: deploy
+
+**Goal:** Turso DB + Vercel project, env vars, schema and seed in prod, verify the live flow.
+
+**Done:**
+- No app code changes; the app was already deploy-ready (`DATABASE_URL`/`DATABASE_AUTH_TOKEN` switch, `turso` dialect in `drizzle.config.ts`, `secure` cookie in production)
+- Turso DB `ajaia-docs` (`aws-us-east-1`); `db:push` created `users`, `documents`, `document_shares`; `db:seed` added alice/bob/carol
+- Vercel project from GitHub, env vars set; live at https://document-editor-ajaia.vercel.app
+- Live check over the API (scripted, test docs deleted afterwards): login sets a `Secure` cookie; Alice create → edit (bold kept) → reload; Bob 404 before share; viewer reads, 403 on edit; editor edits, 403 on delete; Carol 404; Bob's dashboard lists the doc; `.md`/`.docx` import 201, `.pdf` 400 with message
+- Live URL in `README.md`; Deployment section filled in `docs/ARCHITECTURE.md`
+
+**Decisions made:** none
+
+**Issues / blockers:**
+- `db:seed` from the user's shell failed with HTTP 400: a malformed token in a leftover `$env:DATABASE_AUTH_TOKEN` overrode `.env.local` (Turso returns 400 for a malformed token, 401 for none). Fixed by removing the shell var.
+- First Vercel URL returned `DEPLOYMENT_NOT_FOUND` until the domain was assigned; resolved.
+- A Turso token was pasted into the chat; rotate it (Turso: invalidate tokens, create new, update Vercel + redeploy) if not done.
+- `.env.local` points at the production DB; switch back to `file:local.db` for local dev.
+
+**Next steps:**
+- [ ] User: rotate the Turso token if not done; reset `.env.local` to the local DB
+- [ ] User: commit on branch `session-6-deploy`, push, merge to `main` (triggers a redeploy)
+- [ ] Optional: click through the live UI once (Alice shares with Bob → Bob opens it)
+- [ ] Session 7: deliverables; live URL in `SUBMISSION.md`
+
+---
+
 ## 2026-10-29 — README
 
 **Goal:** Add a project README (brought forward from session 7).

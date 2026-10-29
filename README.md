@@ -4,7 +4,7 @@ A lightweight collaborative document editor inspired by Google Docs. Create, ren
 
 Built with Next.js 16 (App Router), Tiptap 3, Drizzle ORM and libSQL (SQLite locally, Turso in production), deployed on Vercel.
 
-**Live demo:** _coming soon_
+**Live demo:** https://document-editor-ajaia.vercel.app (log in as any seeded user, e.g. Alice, then Bob to see shared docs)
 
 ## Features
 
